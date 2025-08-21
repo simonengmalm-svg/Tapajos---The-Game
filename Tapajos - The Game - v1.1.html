@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <title>Tapajos – The Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0; url=index.html">
+  <style>
+    html,body{height:100%;margin:0;font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;display:grid;place-items:center;background:#0b1220;color:#e7eefb}
+    .card{background:#141c2e;padding:24px 28px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);text-align:center}
+    a.button{display:inline-block;margin-top:12px;padding:10px 16px;border-radius:10px;background:#2a74ff;color:white;text-decoration:none}
+    .small{opacity:.8;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Tapajos – The Game</h1>
+    <p>Startar spelet…</p>
+    <p class="small">Om inget händer: <a class="button" href="index.html">Öppna spelet</a></p>
+  </div>
+  <script>
+    // Extra säkerhet för äldre webbläsare
+    setTimeout(()=>{ if(location.pathname.indexOf('index.html')===-1){ location.href='./index.html'; } }, 300);
+  </script>
+</body>
+</html>

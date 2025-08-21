@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>TAPAJOS – Det roliga fastighetsbolaget</title>
+
+<link href="style.css" rel="stylesheet"/></head>
+<body>
+
+<div class="splash" id="splash">
+<img alt="Maskot" onerror="this.style.display='none'" src="assets/mascot.png"/>
+<div class="title">TAPAJOS – Det roliga fastighetsbolaget</div>
+<div class="sub">Bygg, förvalta och gör vinst på 15 år</div>
+<div class="Title">Exploiten är stängd. Systemet har anpassats. Version 1.1 är inte längre ett lätt byte – klarar du dig i den nya spelplanen?</div>
+<button class="start" id="startBtn">Starta spelet</button> 
+</div>
+<div class="wrap" id="appWrap" style="display:none">
+<div class="topbar">
+<div class="brand">
+<img alt="Maskot" id="brandImg" onerror="this.style.display='none'" src="assets/mascot.png"/>
+<div>
+<div class="brand-title">TAPAJOS – Det roliga fastighetsbolaget</div>
+<div class="brand-sub">Bygg, förvalta och gör vinst på 15 år</div>
+</div>
+</div>
+<div class="badge">💰 Kassa: <span id="cash">10 000 000</span> kr</div>
+<div class="badge">💳 Skuld: <span id="debtTop">0</span> kr</div>
+<div class="badge">📅 År: <span id="yearNow">1</span> / 15</div>
+<div class="badge">📈 Marknad: <span id="market">1.00×</span></div>
+<div class="badge">🏦 Ränta: <span id="rate">3.0</span>%</div>
+<button class="btn" id="openMarket">Fastighetsmarknad</button>
+<button class="btn alt" id="next">Nästa år ▶</button>
+<button class="btn ghost" id="openHS">Highscore 🏆</button>
+</div>
+<div class="main">
+<div class="panel">
+<h3>Mina fastigheter</h3>
+<div class="props" id="props"></div>
+</div>
+<div class="panel">
+<h3>Ekonomi</h3>
+<div class="economy">
+<div class="rowb"><b>Periodens resultat</b><span id="pnl">0 kr</span></div>
+<div class="rowb"><b>Intäkter (hyra)</b><span id="rent">0 kr</span></div>
+<div class="rowb"><b>Kostnader (drift/underhåll)</b><span id="maint">0 kr</span></div>
+<div class="rowb"><b>Räntekostnad</b><span id="interest">0 kr</span></div>
+<div class="rowb"><b>Amortering</b><span id="amort">0 kr</span></div>
+<div class="rowb"><b>Skuld</b><span id="debt">0 kr</span></div>
+<div class="rowb"><b>Notiser</b><div class="meta" id="notes">—</div></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Marknad -->
+<div class="modal" id="marketModal">
+<div class="box">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+<h3 style="margin:0">Fastighetsmarknad</h3>
+<button class="btn close" id="mClose">Stäng</button>
+</div>
+<div class="offers" id="offers"></div>
+<div class="meta">Tips: Köp <b>kontant</b> eller med <b>lån</b> (30% kontantinsats). Varje objekt visar antal lägenheter.</div>
+</div>
+</div>
+<!-- Förhandling -->
+<div class="modal" id="negModal">
+<div class="box">
+<h3 id="negTitle" style="margin-top:0">Förhandling</h3>
+<div class="meta">Justera hyra (%) och kompensation (kr/lgh). Utfallet påverkas av nöjdhet &amp; skick.</div>
+<div style="display:grid;grid-template-columns:1fr 1fr; gap:12px; margin:10px 0">
+<div class="economy rowb">
+<label>Hyresjustering (%): <b id="adjLbl">0</b></label>
+<input id="adj" max="15" min="-5" type="range" value="0"/>
+<label>Kompensation (kr/lgh): <b id="compLbl">0</b></label>
+<input id="comp" max="25000" min="0" step="1000" type="range" value="0"/>
+</div>
+<div class="economy rowb">
+<div><b>Sannolikhet att nå avtal</b></div>
+<div id="negProb" style="font-size:22px;font-weight:800">—</div>
+<div class="meta">Tips: högre nöjdhet &amp; bättre skick ökar sannolikheten. För hög justering sänker den.</div>
+</div>
+</div>
+<div style="display:flex;gap:10px;align-items:center">
+<button class="btn" id="negRun">Förhandla</button>
+<button class="btn ghost" id="negClose">Stäng</button>
+</div>
+</div>
+</div>
+<!-- Omgångsslut / Highscore -->
+<div class="modal" id="endModal">
+<div class="box">
+<h3 style="margin:0 0 6px 0">Spelet slut – 15 år har passerat</h3>
+<div class="meta" id="endSummary" style="margin-bottom:8px">—</div>
+<div style="display:flex; gap:8px; align-items:center; margin:8px 0 12px 0">
+<label>Namn: <input id="playerName" placeholder="Spelare" style="padding:6px;border:2px solid #000;border-radius:8px;background:#0f1524;color:#fff"/></label>
+<button class="btn" id="saveScore">Spara poäng</button>
+<button class="btn alt" id="playAgain">Spela igen</button>
+</div>
+<div>
+<b>Highscore</b>
+<div class="meta" id="hsList">—</div>
+</div>
+</div>
+</div>
+<!-- Omvärldshändelse -->
+<div class="modal" id="eventModal">
+<div class="box">
+<div class="event">
+<div class="ev-pixel" id="evPixel"></div>
+<div>
+<h3 id="evTitle" style="margin:0 0 6px 0">Händelse</h3>
+<div class="meta" id="evText" style="margin-bottom:8px"></div>
+<div id="evActions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+</div>
+</div>
+<div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn close" id="evClose">Stäng</button></div>
+</div>
+</div>
+<!-- Highscore-tavla (Pinball-look) -->
+<div class="modal" id="hsModal" style="display:none">
+  <div class="pinboard">
+    <div class="hs-header">
+      <div class="hs-title">🏆 TAPAJOS HIGHSCORE</div>
+      <button class="btn close" id="hsClose">Stäng</button>
+    </div>
+    <div class="hs-sub">Top 10 ● Nettoförmögenhet</div>
+    <div id="hsBoard" class="hs-board"></div>
+    <div class="hs-footer">
+     
+      <span class="hs-led"></span>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script></body>
+</html>
