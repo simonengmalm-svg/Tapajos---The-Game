@@ -5,7 +5,7 @@ const GAME_VERSION = '1.1';
 
 // ------- Starta spelet (splash) -------
 function startGame() {
-  const s = document.getElementById('splash');
+  const s = document.getElementById('splash'); // vissa html-versioner har "startScreen" – hanteras i showAppHideSplash()
   const app = document.getElementById('appWrap');
   if (s) s.style.display = 'none';
   if (app) app.style.display = 'grid';
@@ -30,6 +30,7 @@ const TYPES = {
   nyprod: { name: 'Nyproduktion', sqmPerUnit: 70, rentPerSqmYr: 1600, maintUnit: 2900, price: [35000000, 80000000], units: [20, 60], cls: 'T-nyprod',  centralMult: 1.10, suburbMult: 0.98 },
   gamlastan:{name:'Gamla stan',   sqmPerUnit: 52, rentPerSqmYr: 1550, maintUnit: 2700, price: [15000000, 30000000], units: [6, 20],  cls: 'T-gamlastan', centralMult: 1.12, suburbMult: 1.00 }
 };
+
 const ANEKD = [
   'Gamla brev hittades på vinden – hyresgästerna ordnar utställning.',
   'En pensionerad snickare i huset hjälper grannar med småfix.',
@@ -47,7 +48,7 @@ let state = {
   capRate: 0.045,
   owned: [],
   loans: [],
-  pendingCash: []   // <— viktig!
+  pendingCash: []
 };
 
 function currentYear() { return state.month; }
@@ -108,13 +109,36 @@ function initSocial(b) {
   b.sat = Math.floor(60 + (b.cond === 'ny' ? +15 : b.cond === 'sliten' ? -10 : -20) + (b.central ? +5 : 0));
   b.consent = Math.max(0, Math.min(100, Math.floor(b.sat - 10 + (b.cond === 'ny' ? +10 : 0))));
   b.status = statusOf(b);
-  b.maintMult = 1.0; b.rentBoost = 0; b.valueBoost = 0; b.project = null;
+
+  b.maintMult = 1.0;
+  b.rentBoost = 0;
+  b.valueBoost = 0;
+  b.project = null;
+
   b.anekdot = pick(ANEKD);
-  b.nextRenovTick = 0; b.converting = null;
-  b.eventYear = currentYear(); b.eventsUsed = 0; b.eventsCap = (Math.random() < 0.35 ? 2 : 1);
-  b.energyUpgrades = 0; b.energyUpgradesMax = 3;
+  b.nextRenovTick = 0;
+  b.converting = null;
+
+  // Årsräknare
+  b.eventYear = currentYear();
+  b.eventsUsed = 0;
+  b.eventsCap = (Math.random() < 0.35 ? 2 : 1);
+
+  // Energi
+  b.energyUpgrades = 0;
+  b.energyUpgradesMax = 3;
+
+  // --- Förhandlingslås per år ---
+  b.negYear = currentYear();
+  b.negUsed = false;
 }
-function statusOf(b) { if (b.consent >= 70 && b.sat >= 70 && b.cond === 'ny') return 'Klar för ombildning'; if (b.sat < 40) return 'Oro i föreningen'; if (b.sat < 60) return 'Skört läge'; return 'Stabilt'; }
+
+function statusOf(b) {
+  if (b.consent >= 70 && b.sat >= 70 && b.cond === 'ny') return 'Klar för ombildning';
+  if (b.sat < 40) return 'Oro i föreningen';
+  if (b.sat < 60) return 'Skört läge';
+  return 'Stabilt';
+}
 function condScore(b) { return b.cond === 'ny' ? 100 : b.cond === 'sliten' ? 60 : 30; }
 
 // --------- DOM refs ---------
@@ -281,7 +305,6 @@ function generateYearMarket(n = 4){
 }
 
 function ensureMarketForThisYear(){
-  // Skapa årets utbud endast om året har bytts.
   if (state.marketYear !== currentYear()){
     generateYearMarket(4);
   }
@@ -325,7 +348,7 @@ function renderMarket(){
         b.baseUnits  = off.units;
         state.owned.push(b);
         removeOfferById(off.id);
-        updateTop(); renderOwned(); renderMarket(); // rita om listan men lämna fönstret öppet
+        updateTop(); renderOwned(); renderMarket(); // lämna fönstret öppet
       };
 
       // Köp med lån
@@ -363,8 +386,8 @@ function renderMarket(){
 }
 
 function openMarket(){
-  ensureMarketForThisYear(); // genererar bara vid årsskifte
-  renderMarket();            // ritar listan; om den är tom visas "Inga fler objekt i år..."
+  ensureMarketForThisYear();
+  renderMarket();
 }
 
 function closeMarket(){
@@ -372,6 +395,20 @@ function closeMarket(){
 }
 
 // --------- Actions ---------
+function ensureYearCounters(b) {
+  const cy = currentYear();
+  if (b.eventYear !== cy) {
+    b.eventYear = cy;
+    b.eventsUsed = 0;
+    b.eventsCap = (Math.random() < 0.35 ? 2 : 1);
+  }
+  // nollställ förhandlingslås vid nytt år
+  if (b.negYear !== cy) {
+    b.negYear = cy;
+    b.negUsed = false;
+  }
+}
+
 function doRenovate(idx) {
   const b = state.owned[idx];
   if (b.nextRenovTick && state.month < b.nextRenovTick) { alert('Renovering redan utförd denna årscykel.'); return; }
@@ -382,10 +419,7 @@ function doRenovate(idx) {
   b.nextRenovTick = state.month + 1;
   updateTop(); renderOwned(); note('Renovering genomförd.');
 }
-function ensureYearCounters(b) {
-  const cy = currentYear();
-  if (b.eventYear !== cy) { b.eventYear = cy; b.eventsUsed = 0; b.eventsCap = (Math.random() < 0.35 ? 2 : 1); }
-}
+
 function doCare(idx) {
   const b = state.owned[idx]; ensureYearCounters(b);
   if (b.eventsUsed >= b.eventsCap) { alert('Gårdsevent-taket för i år är nått.'); return; }
@@ -393,6 +427,7 @@ function doCare(idx) {
   state.cash -= cost; b.sat = Math.min(100, b.sat + 12); b.consent = Math.min(100, b.consent + 5); b.eventsUsed++;
   b.status = statusOf(b); updateTop(); renderOwned(); note('Gårdsevent genomfört.');
 }
+
 function doEnergy(idx) {
   const b = state.owned[idx];
   if (b.energyUpgrades >= b.energyUpgradesMax) { alert('Max antal energioptimeringar uppnått.'); return; }
@@ -401,6 +436,7 @@ function doEnergy(idx) {
   b.sat = Math.min(100, b.sat + 2); b.status = statusOf(b);
   updateTop(); renderOwned(); note('Energioptimering installerad.');
 }
+
 function doAttic(idx) {
   const b = state.owned[idx];
   if (b.project) { alert('Ett projekt pågår redan.'); return; }
@@ -412,6 +448,7 @@ function doAttic(idx) {
   b.sat = Math.max(0, b.sat - 4);
   updateTop(); renderOwned(); note('Vindskonvertering startad.');
 }
+
 function startBRF(idx) {
   const b = state.owned[idx];
   if (b.converting) { alert('Ombildning pågår redan.'); return; }
@@ -419,6 +456,7 @@ function startBRF(idx) {
   if (!(b.consent >= 70 && b.sat >= 70 && b.cond === 'ny')) { alert('Krav BRF: Nöjdhet ≥70, Samtycke ≥70, Skick: Ny.'); return; }
   b.converting = { duration: 1 }; renderOwned(); note('Ombildning startad. Tillträde nästa år – likvid vid tillträde.');
 }
+
 function completeBRF(i, b) {
   const premium = 1.35;
   let proceeds = Math.round(valuation(b) * premium);
@@ -428,6 +466,7 @@ function completeBRF(i, b) {
   state.owned.splice(i, 1);
   note('Ombildning klar. Likvid insatt.');
 }
+
 function doSell(idx) {
   const b = state.owned[idx];
   if (b.project) { alert('Projekt pågår. Kan inte sälja just nu.'); return; }
@@ -440,36 +479,79 @@ function doSell(idx) {
 }
 
 // --------- Förhandling ---------
+
+// Bind förhandlingsreglagen exakt en gång
+function bindNegControlsOnce() {
+  if (adj && !adj.dataset.bound) {
+    adj.addEventListener('input', updateNegProb);
+    adj.addEventListener('change', updateNegProb);
+    adj.dataset.bound = '1';
+  }
+  if (comp && !comp.dataset.bound) {
+    comp.addEventListener('input', updateNegProb);
+    comp.addEventListener('change', updateNegProb);
+    comp.dataset.bound = '1';
+  }
+}
+
 function openNegotiation(idx) {
-  negIdx = idx; const b = state.owned[idx];
+  negIdx = idx;
+  const b = state.owned[idx];
   if (!b) { alert('Ingen fastighet vald.'); return; }
-  document.getElementById('negTitle').textContent =
-    `Förhandling — ${TYPES[b.tid].name} ${b.central ? '(Centralt)' : '(Förort)'} • Lgh: ${b.units || b.baseUnits || '? '}`;
-  if (adj) adj.value = 0; if (comp) comp.value = 0; updateNegProb();
+
+  // Respektera "max 1 gång per år"
+  ensureYearCounters(b);
+  if (b.negUsed) { alert('Förhandling är redan gjord för denna fastighet i år.'); return; }
+
+  const titleEl = document.getElementById('negTitle');
+  if (titleEl) {
+    titleEl.textContent = `Förhandling — ${TYPES[b.tid].name} ${b.central ? '(Centralt)' : '(Förort)'} • Lgh: ${b.units || b.baseUnits || '? '}`;
+  }
+
+  if (adj) adj.value = 0;
+  if (comp) comp.value = 0;
+
+  bindNegControlsOnce();
+  updateNegProb();
+
   if (negModal) negModal.style.display = 'flex';
 }
+
 function updateNegProb() {
-  if (negIdx == null) return 0;
-  const b = state.owned[negIdx]; if (!b) return 0;
-  const a = Number(adj?.value || 0), c = Number(comp?.value || 0);
+  if (negIdx == null) { if (negProb) negProb.textContent = '—%'; return 0; }
+  const b = state.owned[negIdx]; if (!b) { if (negProb) negProb.textContent = '—%'; return 0; }
+
+  const a = Number((adj && adj.value) || 0);
+  const c = Number((comp && comp.value) || 0);
+
   if (adjLbl)  adjLbl.textContent  = a;
   if (compLbl) compLbl.textContent = fmt(c);
+
   const condF = b.cond === 'ny' ? +10 : b.cond === 'sliten' ? -10 : -20;
   let p = 40 + (b.sat - 50) / 2 + condF;
-  p -= Math.max(0, a - 2) * 3;
-  p += c / 1500;
+  p -= Math.max(0, a - 2) * 3; // större höjning -> svårare
+  p += c / 1500;               // högre komp -> lättare
   p = Math.max(5, Math.min(95, Math.round(p)));
+
   if (negProb) negProb.textContent = p + '%';
   return p;
 }
+
 function runNegotiation() {
   if (negIdx == null) return;
   const b = state.owned[negIdx];
-  const a = Number(adj?.value || 0), c = Number(comp?.value || 0);
+
+  // Säkerställ att vi inte kan köra flera gånger i samma år
+  ensureYearCounters(b);
+  if (b.negUsed) { alert('Förhandling är redan gjord för denna fastighet i år.'); return; }
+
+  const a = Number((adj && adj.value) || 0);
+  const c = Number((comp && comp.value) || 0);
   const p = updateNegProb();
+
   const win = Math.random() * 100 < p;
   if (win) {
-    b.rentBoost = (b.rentBoost || 0) + a / 100;
+    b.rentBoost = (b.rentBoost || 0) + (a / 100); // a% -> 0.00–?
     state.cash -= Math.round(c * (b.units || b.baseUnits || 10));
     b.sat = Math.min(100, b.sat + 8);
     b.consent = Math.min(100, b.consent + 10);
@@ -479,6 +561,11 @@ function runNegotiation() {
     b.consent = Math.max(0, b.consent - 6);
     note('Förhandling misslyckades. Nöjdhet sjönk.');
   }
+
+  // Lås för resten av året
+  b.negUsed = true;
+  b.negYear = currentYear();
+
   b.status = statusOf(b);
   renderOwned(); updateTop();
   if (negModal) negModal.style.display = 'none';
@@ -585,32 +672,39 @@ function updateTop() {
 
 function nextPeriod() {
   state.month++;
-// Betala ut likvider som förfaller detta år
-if (Array.isArray(state.pendingCash) && state.pendingCash.length) {
-  const y = state.month;
-  let total = 0;
-  const rest = [];
-  const paidLabels = [];
-  for (const p of state.pendingCash) {
-    if (p.year <= y) { total += p.amount; paidLabels.push(p.label || 'Likvid'); }
-    else { rest.push(p); }
-  }
-  state.pendingCash = rest;
-  if (total > 0) {
-    state.cash += total;
-    note(`Inkommande likvid: ${fmt(total)} kr${paidLabels.length ? ' (' + paidLabels.join(', ') + ')' : ''}`);
-  }
-}
 
+  // Betala ut likvider som förfaller detta år
+  if (Array.isArray(state.pendingCash) && state.pendingCash.length) {
+    const y = state.month;
+    let total = 0;
+    const rest = [];
+    const paidLabels = [];
+    for (const p of state.pendingCash) {
+      if (p.year <= y) { total += p.amount; paidLabels.push(p.label || 'Likvid'); }
+      else { rest.push(p); }
+    }
+    state.pendingCash = rest;
+    if (total > 0) {
+      state.cash += total;
+      note(`Inkommande likvid: ${fmt(total)} kr${paidLabels.length ? ' (' + paidLabels.join(', ') + ')' : ''}`);
+    }
+  }
+
+  // Marknadsdrift
   const drift = (Math.random() - 0.5) * 0.06;
   state.market = Math.max(0.85, Math.min(1.25, state.market * (1 + drift)));
 
-  let rent = 0, maint = 0, interest = 0, amort = 0;
+  // Årets utbud genereras exakt en gång vid årsskiftet
+  generateYearMarket(4);
 
-generateYearMarket(4);  // ersätter förra årets pool med 4 nya objekt
+  let rent = 0, maint = 0, interest = 0, amort = 0;
 
   for (let i = state.owned.length - 1; i >= 0; i--) {
     const b = state.owned[i];
+
+    // nollställ årsräknare där det behövs
+    ensureYearCounters(b);
+
     if (b.converting) { b.converting.duration--; if (b.converting.duration <= 0) { completeBRF(i, b); continue; } }
     if (b.project) {
       b.project.duration--;
@@ -659,9 +753,6 @@ generateYearMarket(4);  // ersätter förra årets pool med 4 nya objekt
   const amoEl = document.getElementById('amort');    if (amoEl) amoEl.textContent = fmt(amort)    + ' kr';
   const debEl = document.getElementById('debt');     if (debEl) debEl.textContent = fmt(totalDebt()) + ' kr';
 
-// Skapa nytt utbud för nya året (ersätter föregående års pool)
-generateYearMarket(4);
-
   updateTop(); renderOwned();
   note('Marknad nu: ' + state.market.toFixed(2) + '×');
   rollEvent();
@@ -693,6 +784,7 @@ function endGame() {
   const end = document.getElementById('endModal');
   if (end) end.style.display = 'flex';
 }
+
 /* ==================== HIGHSCORE (via Vercel-proxy) ==================== */
 
 // 1) Proxy-URL (CSV som text)
@@ -802,7 +894,7 @@ async function hsReadFromSheet() {
 
     return {
       ts:    tsStr,
-      tsMs:  parseTimestamp(tsStr),        // <— fix: blir null om okänt
+      tsMs:  parseTimestamp(tsStr),
       name:  get(ix.name) || 'Spelare',
       score: Number(scoreStr) || 0,
       props: Number(propsStr) || 0,
@@ -928,21 +1020,21 @@ function closeHSModal(){
 function postToGoogleForm(FORM_ACTION, params) {
   return new Promise((resolve, reject) => {
     try {
-      const iframe = document.createElement('iframe'); 
-      iframe.name = 'hs_hidden_iframe'; 
+      const iframe = document.createElement('iframe');
+      iframe.name = 'hs_hidden_iframe';
       iframe.style.display = 'none';
 
-      const form = document.createElement('form'); 
-      form.action = FORM_ACTION; 
-      form.method = 'POST'; 
-      form.target = 'hs_hidden_iframe'; 
+      const form = document.createElement('form');
+      form.action = FORM_ACTION;
+      form.method = 'POST';
+      form.target = 'hs_hidden_iframe';
       form.style.display = 'none';
 
       for (const [k, v] of params.entries()) {
-        const inp = document.createElement('input'); 
-        inp.type = 'hidden'; 
-        inp.name = k; 
-        inp.value = v; 
+        const inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = k;
+        inp.value = v;
         form.appendChild(inp);
       }
 
@@ -975,12 +1067,12 @@ async function saveHighscore(){
 
   // OBS: entry.* måste matcha ditt uppdaterade formulär.
   const params = new URLSearchParams();
-  params.append('entry.1521025478', name);          // Namn
+  params.append('entry.1521025478', name);            // Namn
   params.append('entry.1264246447', String(s.worth)); // Nettoförmögenhet
   params.append('entry.1926418411', String(s.props)); // Fastigheter
   params.append('entry.1041530574', String(s.avgSat)); // Snittnöjdhet
   params.append('entry.1154333964', String(s.year));   // År
-  params.append('entry.143904483', GAME_VERSION);      // Version (viktigt!)
+  params.append('entry.143904483', GAME_VERSION);      // Version
 
   try {
     await postToGoogleForm(FORM_ACTION, params);
@@ -994,6 +1086,7 @@ async function saveHighscore(){
     setTimeout(()=>{ if (btn) { btn.disabled = false; btn.textContent = oldText || 'Spara highscore'; } }, 800);
   }
 }
+
 // Delningshjälp (om knappar finns)
 function mailScore() {
   const s = summarizeEnd();
@@ -1019,7 +1112,6 @@ async function copyScore() {
       await navigator.clipboard.writeText(text);
       note('Resultat kopierat till urklipp!');
     } else {
-      // Fallback
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed';
@@ -1036,6 +1128,19 @@ async function copyScore() {
 }
 
 /* ==================== INIT: bindningar & laddning (robust) ==================== */
+function bindNegControlsOnce() {
+  if (adj && !adj.dataset.bound) {
+    adj.addEventListener('input', updateNegProb);
+    adj.addEventListener('change', updateNegProb);
+    adj.dataset.bound = '1';
+  }
+  if (comp && !comp.dataset.bound) {
+    comp.addEventListener('input', updateNegProb);
+    comp.addEventListener('change', updateNegProb);
+    comp.dataset.bound = '1';
+  }
+}
+
 function bindCoreButtonsOnce() {
   function once(id, handler) {
     var el = document.getElementById(id);
@@ -1058,6 +1163,7 @@ function bindCoreButtonsOnce() {
   once('negClose', function () {
     if (typeof negModal !== 'undefined' && negModal) negModal.style.display = 'none';
   });
+  bindNegControlsOnce(); // säkerställ att reglagen lever
 
   // Events
   once('evClose', function () {
